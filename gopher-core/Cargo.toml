@@ -1,0 +1,10 @@
+[package]
+name = "gopher-core"
+version = "0.1.0"
+authors = ["Matt Brubeck <mbrubeck@limpet.net>"]
+
+[dependencies]
+encoding = "0.2"
+futures = "0.1"
+tokio-core = "0.1"
+tokio-proto = "0.1"

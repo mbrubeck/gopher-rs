@@ -1,5 +1,4 @@
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::ISO_8859_1;
+use std::fmt::{self, Display, Write};
 use tokio_core::io::EasyBuf;
 
 /// A string of bytes as sent over the wire.
@@ -19,16 +18,20 @@ impl GopherStr {
     pub fn into_buf(self) -> EasyBuf {
         self.buf
     }
-
-    /// Convert this string from Latin-1 to UTF-8.
-    pub fn to_string(&self) -> String {
-        ISO_8859_1.decode(self.buf.as_slice(), DecoderTrap::Strict)
-            .expect("All byte strings are valid Latin-1")
-    }
 }
 
 impl AsRef<[u8]> for GopherStr {
     fn as_ref(&self) -> &[u8] {
         self.buf.as_slice()
+    }
+}
+
+impl Display for GopherStr {
+    /// Decode from Latin-1 without allocating.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for b in self.buf.as_slice() {
+            f.write_char(*b as char)?;
+        }
+        Ok(())
     }
 }

@@ -16,23 +16,6 @@ pub struct GopherRequest {
     pub query: Option<GopherStr>
 }
 
-impl GopherRequest {
-    pub fn decode(mut buf: EasyBuf) -> Self {
-        let query = match buf.as_slice().iter().position(|b| *b == b'\t') {
-            Some(i) => {
-                let mut query = buf.split_off(i);
-                query.drain_to(1); // Consume the TAB.
-                Some(GopherStr::new(query))
-            }
-            None => None
-        };
-        GopherRequest {
-            selector: GopherStr::new(buf),
-            query: query,
-        }
-    }
-}
-
 /// A server-to-client message.
 pub enum GopherResponse {
     /// A list of resources.

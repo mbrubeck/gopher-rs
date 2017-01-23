@@ -20,12 +20,6 @@ impl GopherStr {
     }
 }
 
-impl AsRef<[u8]> for GopherStr {
-    fn as_ref(&self) -> &[u8] {
-        self.buf.as_slice()
-    }
-}
-
 impl Display for GopherStr {
     /// Decode from Latin-1 without allocating.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

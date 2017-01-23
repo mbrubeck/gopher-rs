@@ -17,10 +17,10 @@ impl Codec for Server {
         // Discard the CR+LF.
         buf.drain_to(2);
 
-        Ok(Some(GopherRequest::decode(line.as_slice())))
+        Ok(Some(GopherRequest::decode(line)))
     }
 
-    fn encode(&mut self, msg: GopherResponse, buf: &mut Vec<u8>) -> io::Result<()> {
+    fn encode(&mut self, _msg: GopherResponse, buf: &mut Vec<u8>) -> io::Result<()> {
         //msg.encode(buf);
         buf.extend(b"\r\n");
         Ok(())

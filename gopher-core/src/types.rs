@@ -1,6 +1,6 @@
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::ISO_8859_1;
 use self::ItemType::*;
+use str::GopherStr;
+use tokio_core::io::EasyBuf;
 
 pub enum GopherError {
     UnknownType,
@@ -8,29 +8,27 @@ pub enum GopherError {
 
 pub type GopherResult<T=()> = Result<T, GopherError>;
 
-pub fn from_latin1(buf: &[u8]) -> String {
-    ISO_8859_1.decode(buf, DecoderTrap::Strict).unwrap()
-}
-
 /// A client-to-server message.
 pub struct GopherRequest {
     /// Identifier of the resource to fetch. May be an empty string.
-    pub selector: String,
+    pub selector: GopherStr,
     /// Search string for a full-text search transaction.
-    pub query: Option<String>
+    pub query: Option<GopherStr>
 }
 
 impl GopherRequest {
-    pub fn decode(buf: &[u8]) -> Self {
-        match buf.iter().position(|b| *b == b'\t') {
-            Some(i) => GopherRequest {
-                selector: from_latin1(&buf[..i]),
-                query: Some(from_latin1(&buf[(i+1)..]))
-            },
-            None => GopherRequest {
-                selector: from_latin1(buf),
-                query: None
+    pub fn decode(mut buf: EasyBuf) -> Self {
+        let query = match buf.as_slice().iter().position(|b| *b == b'\t') {
+            Some(i) => {
+                let mut query = buf.split_off(i);
+                query.drain_to(1); // Consume the TAB.
+                Some(GopherStr::new(query))
             }
+            None => None
+        };
+        GopherRequest {
+            selector: GopherStr::new(buf),
+            query: query,
         }
     }
 }
@@ -40,9 +38,9 @@ pub enum GopherResponse {
     /// A list of resources.
     Menu(Vec<DirEntity>),
     /// A text document.
-    Text(String),
+    TextFile(EasyBuf),
     /// A binary file download.
-    Binary(Vec<u8>),
+    BinaryFile(EasyBuf),
 }
 
 pub struct Menu {
@@ -51,15 +49,10 @@ pub struct Menu {
 
 pub struct DirEntity {
     pub item_type: ItemType,
-    pub name: String,
-    pub selector: String,
-    pub host: String,
+    pub name: GopherStr,
+    pub selector: GopherStr,
+    pub host: GopherStr,
     pub port: u16,
-}
-
-impl DirEntity {
-    fn encode(&self, out: &mut Vec<u8>) {
-    }
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]

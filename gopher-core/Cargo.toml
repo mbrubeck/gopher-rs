@@ -7,3 +7,6 @@ authors = ["Matt Brubeck <mbrubeck@limpet.net>"]
 futures = "0.1"
 tokio-core = "0.1"
 tokio-proto = "0.1"
+
+[dev-dependencies]
+tokio-service = "0.1"

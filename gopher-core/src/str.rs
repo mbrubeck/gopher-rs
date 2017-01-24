@@ -14,6 +14,12 @@ impl GopherStr {
         GopherStr { buf: buf }
     }
 
+    pub fn from_latin1(bytes: &[u8]) -> Self {
+        let mut buf = EasyBuf::new();
+        buf.get_mut().extend(bytes);
+        GopherStr { buf: buf }
+    }
+
     /// Unwrap the inner EasyBuf.
     pub fn into_buf(self) -> EasyBuf {
         self.buf

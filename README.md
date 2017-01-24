@@ -5,7 +5,7 @@ programming language, including async services for use in [Tokio] clients
 and servers.  This is currently a work in progress.
 
 * [Documentation](https://docs.rs/gopher-core)
-* [crates.io](https://crates.io/crates/unicode-reverse)
+* [crates.io](https://crates.io/crates/gopher-core)
 
 [gopher]: https://en.wikipedia.org/wiki/Gopher_(protocol)
 [Rust]: https://www.rust-lang.org/

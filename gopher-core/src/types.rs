@@ -59,11 +59,12 @@ impl GopherResponse {
             GopherResponse::Menu(ref entities) => {
                 for entity in entities {
                     buf.write_all(&[entity.item_type.encode()])?;
-                    write!(buf, "{}\t{}\t{}\t{}\r\n",
-                           entity.name,
-                           entity.selector,
-                           entity.host,
-                           entity.port)?;
+                    buf.write_all(&entity.name)?;
+                    buf.write_all(b"\t")?;
+                    buf.write_all(&entity.selector)?;
+                    buf.write_all(b"\t")?;
+                    buf.write_all(&entity.host)?;
+                    write!(buf, "\t{}\r\n", entity.port)?;
                 }
                 buf.write_all(b".\r\n")?;
             }

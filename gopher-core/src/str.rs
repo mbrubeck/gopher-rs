@@ -1,4 +1,5 @@
 use std::fmt::{self, Display, Write};
+use std::ops::Deref;
 use tokio_core::io::EasyBuf;
 
 /// A string of bytes as sent over the wire.
@@ -23,6 +24,13 @@ impl GopherStr {
     /// Unwrap the inner EasyBuf.
     pub fn into_buf(self) -> EasyBuf {
         self.buf
+    }
+}
+
+impl Deref for GopherStr {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] {
+        self.buf.as_slice()
     }
 }
 

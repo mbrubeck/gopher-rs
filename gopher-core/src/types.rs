@@ -93,22 +93,22 @@ impl ItemType {
         }
     }
 
-    pub fn encode(self) -> u8 {
+    pub fn encode(self) -> char {
         match self {
-            File            => b'0',
-            Dir             => b'1',
-            CsoServer       => b'2',
-            Error           => b'3',
-            BinHex          => b'4',
-            Dos             => b'5',
-            Uuencoded       => b'6',
-            IndexServer     => b'7',
-            Telnet          => b'8',
-            Binary          => b'9',
-            RedundantServer => b'+',
-            Tn3270          => b'T',
-            Gif             => b'g',
-            Image           => b'I',
+            File            => '0',
+            Dir             => '1',
+            CsoServer       => '2',
+            Error           => '3',
+            BinHex          => '4',
+            Dos             => '5',
+            Uuencoded       => '6',
+            IndexServer     => '7',
+            Telnet          => '8',
+            Binary          => '9',
+            RedundantServer => '+',
+            Tn3270          => 'T',
+            Gif             => 'g',
+            Image           => 'I',
         }
     }
 }

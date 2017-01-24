@@ -4,12 +4,6 @@ use std::io::Write;
 use str::GopherStr;
 use tokio_core::io::EasyBuf;
 
-pub enum GopherError {
-    UnknownType,
-}
-
-pub type GopherResult<T=()> = Result<T, GopherError>;
-
 /// A client-to-server message.
 pub struct GopherRequest {
     /// Identifier of the resource to fetch. May be an empty string.
@@ -64,8 +58,8 @@ impl GopherResponse {
             }
             GopherResponse::Menu(ref entities) => {
                 for entity in entities {
-                    write!(buf, "{}{}\t{}\t{}\t{}\r\n",
-                           entity.item_type.encode(),
+                    buf.write_all(&[entity.item_type.encode()])?;
+                    write!(buf, "{}\t{}\t{}\t{}\r\n",
                            entity.name,
                            entity.selector,
                            entity.host,
@@ -78,18 +72,28 @@ impl GopherResponse {
     }
 }
 
+/// A list of Gopher resources.
 pub struct Menu {
     pub entities: Vec<DirEntity>,
 }
 
+/// An menu item in a directory of Gopher resources.
 pub struct DirEntity {
+    /// The type of the resource
     pub item_type: ItemType,
+    /// String to display to the user.
     pub name: GopherStr,
+    /// Path or identifier used for requesting this resource.
     pub selector: GopherStr,
+    /// The hostname of the server hosting this resource.
     pub host: GopherStr,
+    /// The TCP port of the server hosting this resource.
     pub port: u16,
 }
 
+/// The type of a resource in a Gopher directory.
+///
+/// For more details, see: https://tools.ietf.org/html/rfc1436
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum ItemType {
     /// Item is a file
@@ -122,45 +126,48 @@ pub enum ItemType {
     Gif,
     /// Item is some kind of image file.  Client decides how to display.
     Image,
+    /// Item is a non-standard type
+    Other(u8),
 }
 
 impl ItemType {
-    pub fn decode(b: u8) -> GopherResult<Self> {
+    pub fn decode(b: u8) -> Self {
         match b {
-            b'0' => Ok(File),
-            b'1' => Ok(Dir),
-            b'2' => Ok(CsoServer),
-            b'3' => Ok(Error),
-            b'4' => Ok(BinHex),
-            b'5' => Ok(Dos),
-            b'6' => Ok(Uuencoded),
-            b'7' => Ok(IndexServer),
-            b'8' => Ok(Telnet),
-            b'9' => Ok(Binary),
-            b'+' => Ok(RedundantServer),
-            b'T' => Ok(Tn3270),
-            b'g' => Ok(Gif),
-            b'I' => Ok(Image),
-            _ => Err(GopherError::UnknownType),
+            b'0' => File,
+            b'1' => Dir,
+            b'2' => CsoServer,
+            b'3' => Error,
+            b'4' => BinHex,
+            b'5' => Dos,
+            b'6' => Uuencoded,
+            b'7' => IndexServer,
+            b'8' => Telnet,
+            b'9' => Binary,
+            b'+' => RedundantServer,
+            b'T' => Tn3270,
+            b'g' => Gif,
+            b'I' => Image,
+            byte => Other(byte)
         }
     }
 
-    pub fn encode(self) -> char {
+    pub fn encode(self) -> u8 {
         match self {
-            File            => '0',
-            Dir             => '1',
-            CsoServer       => '2',
-            Error           => '3',
-            BinHex          => '4',
-            Dos             => '5',
-            Uuencoded       => '6',
-            IndexServer     => '7',
-            Telnet          => '8',
-            Binary          => '9',
-            RedundantServer => '+',
-            Tn3270          => 'T',
-            Gif             => 'g',
-            Image           => 'I',
+            File            => b'0',
+            Dir             => b'1',
+            CsoServer       => b'2',
+            Error           => b'3',
+            BinHex          => b'4',
+            Dos             => b'5',
+            Uuencoded       => b'6',
+            IndexServer     => b'7',
+            Telnet          => b'8',
+            Binary          => b'9',
+            RedundantServer => b'+',
+            Tn3270          => b'T',
+            Gif             => b'g',
+            Image           => b'I',
+            Other(byte)     => byte,
         }
     }
 }

@@ -29,6 +29,13 @@ impl Service for HelloGopherServer {
                 host: GopherStr::from_latin1(b"0.0.0.0"),
                 port: 12345,
             },
+            DirEntity {
+                item_type: ItemType::Dir,
+                name: GopherStr::from_latin1(b"Goodbye, world"),
+                selector: GopherStr::from_latin1(b"bye"),
+                host: GopherStr::from_latin1(b"0.0.0.0"),
+                port: 12345,
+            },
         ]);
         future::ok(response).boxed()
     }

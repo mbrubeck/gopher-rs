@@ -1,4 +1,6 @@
 use self::ItemType::*;
+use std::io;
+use std::io::Write;
 use str::GopherStr;
 use tokio_core::io::EasyBuf;
 
@@ -16,6 +18,26 @@ pub struct GopherRequest {
     pub query: Option<GopherStr>
 }
 
+impl GopherRequest {
+    /// Read a Gopher request from a buffer containing a line *without* the trailing CRLF.
+    pub fn decode(mut line: EasyBuf) -> Self {
+        // Split on TAB if present.
+        let query = match line.as_slice().iter().position(|b| *b == b'\t') {
+            Some(i) => {
+                let mut query = line.split_off(i);
+                query.drain_to(1); // Consume the TAB.
+                Some(GopherStr::new(query))
+            }
+            None => None
+        };
+
+        GopherRequest {
+            selector: GopherStr::new(line),
+            query: query,
+        }
+    }
+}
+
 /// A server-to-client message.
 pub enum GopherResponse {
     /// A list of resources.
@@ -24,6 +46,36 @@ pub enum GopherResponse {
     TextFile(EasyBuf),
     /// A binary file download.
     BinaryFile(EasyBuf),
+}
+
+impl GopherResponse {
+    /// Encode the response into bytes for sending over the wire.
+    pub fn encode<W>(&self, mut buf: W) -> io::Result<()> 
+        where W: Write
+    {
+        match *self {
+            GopherResponse::BinaryFile(ref file) => {
+                buf.write_all(file.as_slice())?;
+            }
+            GopherResponse::TextFile(ref file) => {
+                // TODO: Escape lines beginning with periods by adding an extra period.
+                buf.write_all(file.as_slice())?;
+                buf.write_all(b".\r\n")?;
+            }
+            GopherResponse::Menu(ref entities) => {
+                for entity in entities {
+                    write!(buf, "{}{}\t{}\t{}\t{}\r\n",
+                           entity.item_type.encode(),
+                           entity.name,
+                           entity.selector,
+                           entity.host,
+                           entity.port)?;
+                }
+                buf.write_all(b".\r\n")?;
+            }
+        }
+        Ok(())
+    }
 }
 
 pub struct Menu {

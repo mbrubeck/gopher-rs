@@ -21,17 +21,19 @@ impl Service for HelloGopherServer {
     type Future = BoxFuture<Self::Response, Self::Error>;
 
     fn call(&self, request: Self::Request) -> Self::Future {
+        println!("got request {:?}", request);
+
         let response = match &request.selector[..] {
             b"" => GopherResponse::Menu(vec![
                 DirEntity {
-                    item_type: ItemType::Dir,
+                    item_type: ItemType::File,
                     name: GopherStr::from_latin1(b"hello, world"),
                     selector: GopherStr::from_latin1(b"hello"),
                     host: GopherStr::from_latin1(b"0.0.0.0"),
                     port: 12345,
                 },
                 DirEntity {
-                    item_type: ItemType::Dir,
+                    item_type: ItemType::File,
                     name: GopherStr::from_latin1(b"Goodbye, world"),
                     selector: GopherStr::from_latin1(b"bye"),
                     host: GopherStr::from_latin1(b"0.0.0.0"),

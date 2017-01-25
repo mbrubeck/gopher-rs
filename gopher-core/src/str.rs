@@ -1,10 +1,11 @@
-use std::fmt::{self, Display, Write};
+use std::fmt::{self, Debug, Display, Write};
 use std::ops::Deref;
 use tokio_core::io::EasyBuf;
 
 /// A string of bytes as sent over the wire.
 ///
 /// The contents are assumed to be encoded in ISO-8859-1 (Latin-1).
+#[derive(Clone)]
 pub struct GopherStr {
     buf: EasyBuf
 }
@@ -40,6 +41,20 @@ impl Display for GopherStr {
         for b in self.buf.as_slice() {
             f.write_char(*b as char)?;
         }
+        Ok(())
+    }
+}
+
+impl Debug for GopherStr {
+    /// Decode from Latin-1 without allocating.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_char('"')?;
+        for b in self.buf.as_slice() {
+            for c in (*b as char).escape_default() {
+                f.write_char(c)?;
+            }
+        }
+        f.write_char('"')?;
         Ok(())
     }
 }

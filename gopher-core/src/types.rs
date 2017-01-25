@@ -5,6 +5,7 @@ use str::GopherStr;
 use tokio_core::io::EasyBuf;
 
 /// A client-to-server message.
+#[derive(Clone, Debug)]
 pub struct GopherRequest {
     /// Identifier of the resource to fetch. May be an empty string.
     pub selector: GopherStr,
@@ -33,6 +34,7 @@ impl GopherRequest {
 }
 
 /// A server-to-client message.
+#[derive(Clone, Debug)]
 pub enum GopherResponse {
     /// A list of resources.
     Menu(Vec<DirEntity>),
@@ -43,6 +45,19 @@ pub enum GopherResponse {
 }
 
 impl GopherResponse {
+    /// Construct a menu with a single error line.
+    pub fn error(text: GopherStr) -> Self {
+        GopherResponse::Menu(vec![
+            DirEntity {
+                item_type: Error,
+                name: text,
+                selector: GopherStr::from_latin1(b"error"),
+                host: GopherStr::from_latin1(b"error.host"),
+                port: 0,
+            }
+        ])
+    }
+
     /// Encode the response into bytes for sending over the wire.
     pub fn encode<W>(&self, mut buf: W) -> io::Result<()> 
         where W: Write
@@ -79,6 +94,7 @@ pub struct Menu {
 }
 
 /// An menu item in a directory of Gopher resources.
+#[derive(Clone, Debug)]
 pub struct DirEntity {
     /// The type of the resource
     pub item_type: ItemType,

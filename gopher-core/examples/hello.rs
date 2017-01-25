@@ -31,22 +31,27 @@ impl Service for HelloGopherServer {
         println!("got request {:?}", request);
 
         let response = match &request.selector[..] {
-            b"" => GopherResponse::Menu(vec![
-                DirEntity {
-                    item_type: ItemType::File,
-                    name: GopherStr::from_latin1(b"hello, world"),
-                    selector: GopherStr::from_latin1(b"hello"),
-                    host: GopherStr::from_latin1(b"0.0.0.0"),
-                    port: 12345,
-                },
-                DirEntity {
-                    item_type: ItemType::File,
-                    name: GopherStr::from_latin1(b"Goodbye, world"),
-                    selector: GopherStr::from_latin1(b"bye"),
-                    host: GopherStr::from_latin1(b"0.0.0.0"),
-                    port: 12345,
-                },
-            ]),
+            b"" => match request.query.as_ref() {
+                None => GopherResponse::Menu(vec![
+                    DirEntity {
+                        item_type: ItemType::File,
+                        name: GopherStr::from_latin1(b"hello, world"),
+                        selector: GopherStr::from_latin1(b"hello"),
+                        host: GopherStr::from_latin1(b"0.0.0.0"),
+                        port: 12345,
+                    },
+                    DirEntity {
+                        item_type: ItemType::File,
+                        name: GopherStr::from_latin1(b"Goodbye, world"),
+                        selector: GopherStr::from_latin1(b"bye"),
+                        host: GopherStr::from_latin1(b"0.0.0.0"),
+                        port: 12345,
+                    },
+                ]),
+                // Compatibility hack for gopher+ clients:
+                Some(_) => GopherResponse::TextFile(
+                    GopherStr::from_latin1(b"+-1\r\n+INFO: 1Main menu\t\tlocalhost\t12345").into_buf())
+            },
             b"hello" => GopherResponse::TextFile(
                 GopherStr::from_latin1(b"Hello, world.\r\nWelcome to Gopher.").into_buf()),
             b"bye" => GopherResponse::TextFile(GopherStr::from_latin1(b"Goodbye").into_buf()),

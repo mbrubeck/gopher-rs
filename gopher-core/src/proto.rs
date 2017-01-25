@@ -1,8 +1,7 @@
 use codec;
-use futures::{stream, Stream};
 use std::io;
 use tokio_core::io::{Io, Framed};
-use tokio_proto::pipeline::ServerProto;
+use tokio_proto::oneshot::ServerProto;
 use types::{GopherRequest, GopherResponse};
 
 pub struct GopherServer;
@@ -15,11 +14,11 @@ impl<T: Io + 'static> ServerProto<T> for GopherServer {
     type Response = GopherResponse;
 
     /// A bit of boilerplate to hook in the codec:
-    type Transport = stream::Take<Framed<T, codec::Server>>;
+    type Transport = Framed<T, codec::Server>;
     type BindTransport = Result<Self::Transport, io::Error>;
 
     fn bind_transport(&self, io: T) -> Self::BindTransport {
         // Use .take() to close the stream after a single response.
-        Ok(io.framed(codec::Server).take(1))
+        Ok(io.framed(codec::Server))
     }
 }

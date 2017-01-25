@@ -69,7 +69,7 @@ impl GopherResponse {
             GopherResponse::TextFile(ref file) => {
                 // TODO: Escape lines beginning with periods by adding an extra period.
                 buf.write_all(file.as_slice())?;
-                buf.write_all(b".\r\n")?;
+                buf.write_all(b"\r\n.\r\n")?;
             }
             GopherResponse::Menu(ref entities) => {
                 for entity in entities {

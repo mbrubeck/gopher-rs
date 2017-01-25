@@ -13,4 +13,5 @@ pub use types::{
     DirEntity,
     GopherRequest,
     GopherResponse,
+    Void,
 };

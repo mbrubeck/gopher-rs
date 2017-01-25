@@ -4,6 +4,8 @@ use std::io::Write;
 use str::GopherStr;
 use tokio_core::io::EasyBuf;
 
+pub enum Void {}
+
 /// A client-to-server message.
 #[derive(Clone, Debug)]
 pub struct GopherRequest {

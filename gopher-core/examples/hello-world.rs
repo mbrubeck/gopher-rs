@@ -6,21 +6,28 @@ extern crate tokio_service;
 
 use futures::{future, Future, BoxFuture};
 use gopher_core::{DirEntity, ItemType};
-use gopher_core::{GopherRequest, GopherResponse, GopherStr};
+use gopher_core::{GopherRequest, GopherResponse, GopherStr, Void};
 use gopher_core::proto::GopherServer;
 use std::io;
+use tokio_core::io::EasyBuf;
 use tokio_proto::TcpServer;
+use tokio_proto::streaming::{Body, Message};
 use tokio_service::Service;
 
 pub struct HelloGopherServer;
 
 impl Service for HelloGopherServer {
-    type Request = GopherRequest;
-    type Response = GopherResponse;
+    type Request = Message<GopherRequest, Body<Void, io::Error>>;
+    type Response = Message<GopherResponse, Body<EasyBuf, io::Error>>;
     type Error = io::Error;
     type Future = BoxFuture<Self::Response, Self::Error>;
 
-    fn call(&self, request: Self::Request) -> Self::Future {
+    fn call(&self, message: Self::Request) -> Self::Future {
+        let request = match message {
+            Message::WithoutBody(request) => request,
+            _ => unreachable!(),
+        };
+
         println!("got request {:?}", request);
 
         let response = match &request.selector[..] {
@@ -46,7 +53,7 @@ impl Service for HelloGopherServer {
             _ => GopherResponse::error(GopherStr::from_latin1(b"File not found")),
         };
 
-        future::ok(response).boxed()
+        future::ok(Message::WithoutBody(response)).boxed()
     }
 }
 

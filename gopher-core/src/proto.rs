@@ -1,25 +1,60 @@
-use codec;
-use futures::{stream, Stream};
+use codec::ServerCodec;
+use futures::{stream, Poll, Stream, Sink, StartSend};
 use std::io;
-use tokio_core::io::{Io, Framed};
-use tokio_proto::pipeline::ServerProto;
-use types::{GopherRequest, GopherResponse};
+use tokio_core::io::{EasyBuf, Io, Framed};
+use tokio_proto::streaming::pipeline::{ServerProto, Transport};
+use types::{GopherRequest, GopherResponse, Void};
 
 pub struct GopherServer;
 
 impl<T: Io + 'static> ServerProto<T> for GopherServer {
-    /// For this protocol style, `Request` matches the codec `In` type
     type Request = GopherRequest;
+    type RequestBody = Void;
 
-    /// For this protocol style, `Response` matches the coded `Out` type
     type Response = GopherResponse;
+    type ResponseBody = EasyBuf;
 
-    /// A bit of boilerplate to hook in the codec:
-    type Transport = stream::Take<Framed<T, codec::Server>>;
+    type Error = io::Error;
+
+    type Transport = OneShot<Framed<T, ServerCodec>>;
     type BindTransport = Result<Self::Transport, io::Error>;
 
     fn bind_transport(&self, io: T) -> Self::BindTransport {
-        // Use .take() to close the stream after a single response.
-        Ok(io.framed(codec::Server).take(1))
+        Ok(OneShot::new(io.framed(ServerCodec)))
     }
 }
+
+/// Transport that closes the stream after one request.
+pub struct OneShot<S>(stream::Take<S>);
+
+impl<S: Stream> OneShot<S> {
+    fn new(stream: S) -> Self {
+        OneShot(stream.take(1))
+    }
+}
+
+impl<S: Stream> Stream for OneShot<S> {
+    type Item = S::Item;
+    type Error = S::Error;
+
+    fn poll(&mut self) -> Poll<Option<S::Item>, S::Error> {
+        self.0.poll()
+    }
+}
+
+impl<S: Sink + Stream> Sink for OneShot<S> {
+    type SinkItem = S::SinkItem;
+    type SinkError = S::SinkError;
+
+    fn start_send(&mut self, item: S::SinkItem) -> StartSend<S::SinkItem, S::SinkError> {
+        self.0.start_send(item)
+    }
+
+    fn poll_complete(&mut self) -> Poll<(), S::SinkError> {
+        self.0.poll_complete()
+    }
+}
+
+impl<S> Transport for OneShot<S> where S: 'static +
+                                          Stream<Error=io::Error> +
+                                          Sink<SinkError = io::Error> {}

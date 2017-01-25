@@ -61,7 +61,7 @@ impl GopherResponse {
     }
 
     /// Encode the response into bytes for sending over the wire.
-    pub fn encode<W>(&self, mut buf: W) -> io::Result<()> 
+    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()> 
         where W: Write
     {
         match *self {

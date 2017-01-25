@@ -40,10 +40,17 @@ impl GopherRequest {
 pub enum GopherResponse {
     /// A list of resources.
     Menu(Vec<DirEntity>),
+
     /// A text document.
     TextFile(EasyBuf),
+
     /// A binary file download.
     BinaryFile(EasyBuf),
+
+    /// A single menu item enclosed in a Gopher+ protocol response.
+    ///
+    /// Useful for redirecting Gopher+ clients to the standard Gopher protocol.
+    GopherPlusRedirect(DirEntity),
 }
 
 impl GopherResponse {
@@ -61,7 +68,7 @@ impl GopherResponse {
     }
 
     /// Encode the response into bytes for sending over the wire.
-    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()> 
+    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()>
         where W: Write
     {
         match *self {
@@ -75,15 +82,13 @@ impl GopherResponse {
             }
             GopherResponse::Menu(ref entities) => {
                 for entity in entities {
-                    buf.write_all(&[entity.item_type.encode()])?;
-                    buf.write_all(&entity.name)?;
-                    buf.write_all(b"\t")?;
-                    buf.write_all(&entity.selector)?;
-                    buf.write_all(b"\t")?;
-                    buf.write_all(&entity.host)?;
-                    write!(buf, "\t{}\r\n", entity.port)?;
+                    entity.encode(buf)?;
                 }
                 buf.write_all(b".\r\n")?;
+            }
+            GopherResponse::GopherPlusRedirect(ref entity) => {
+                buf.write_all(b"+-1\r\n+INFO: ")?;
+                entity.encode(buf)?;
             }
         }
         Ok(())
@@ -108,6 +113,21 @@ pub struct DirEntity {
     pub host: GopherStr,
     /// The TCP port of the server hosting this resource.
     pub port: u16,
+}
+
+impl DirEntity {
+    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()>
+        where W: Write
+    {
+        buf.write_all(&[self.item_type.encode()])?;
+        buf.write_all(&self.name)?;
+        buf.write_all(b"\t")?;
+        buf.write_all(&self.selector)?;
+        buf.write_all(b"\t")?;
+        buf.write_all(&self.host)?;
+        write!(buf, "\t{}\r\n", self.port)?;
+        Ok(())
+    }
 }
 
 /// The type of a resource in a Gopher directory.

@@ -35,7 +35,7 @@ impl Service for HelloGopherServer {
                 None => GopherResponse::Menu(vec![
                     DirEntity {
                         item_type: ItemType::File,
-                        name: GopherStr::from_latin1(b"hello, world"),
+                        name: GopherStr::from_latin1(b"Hello, world"),
                         selector: GopherStr::from_latin1(b"hello"),
                         host: GopherStr::from_latin1(b"0.0.0.0"),
                         port: 12345,
@@ -49,12 +49,17 @@ impl Service for HelloGopherServer {
                     },
                 ]),
                 // Compatibility hack for gopher+ clients:
-                Some(_) => GopherResponse::TextFile(
-                    GopherStr::from_latin1(b"+-1\r\n+INFO: 1Main menu\t\tlocalhost\t12345").into_buf())
+                Some(_) => GopherResponse::GopherPlusRedirect(DirEntity {
+                    item_type: ItemType::Dir,
+                    name: GopherStr::from_latin1(b"Main menu"),
+                    selector: GopherStr::from_latin1(b""),
+                    host: GopherStr::from_latin1(b"0.0.0.0"),
+                    port: 12345,
+                })
             },
             b"hello" => GopherResponse::TextFile(
                 GopherStr::from_latin1(b"Hello, world.\r\nWelcome to Gopher.").into_buf()),
-            b"bye" => GopherResponse::TextFile(GopherStr::from_latin1(b"Goodbye").into_buf()),
+            b"bye" => GopherResponse::TextFile(GopherStr::from_latin1(b"Goodbye!").into_buf()),
             _ => GopherResponse::error(GopherStr::from_latin1(b"File not found")),
         };
 

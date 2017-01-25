@@ -20,23 +20,30 @@ impl Service for HelloGopherServer {
     type Error = io::Error;
     type Future = BoxFuture<Self::Response, Self::Error>;
 
-    fn call(&self, _: Self::Request) -> Self::Future {
-        let response = GopherResponse::Menu(vec![
-            DirEntity {
-                item_type: ItemType::Dir,
-                name: GopherStr::from_latin1(b"hello, world"),
-                selector: GopherStr::from_latin1(b"hello"),
-                host: GopherStr::from_latin1(b"0.0.0.0"),
-                port: 12345,
-            },
-            DirEntity {
-                item_type: ItemType::Dir,
-                name: GopherStr::from_latin1(b"Goodbye, world"),
-                selector: GopherStr::from_latin1(b"bye"),
-                host: GopherStr::from_latin1(b"0.0.0.0"),
-                port: 12345,
-            },
-        ]);
+    fn call(&self, request: Self::Request) -> Self::Future {
+        let response = match &request.selector[..] {
+            b"" => GopherResponse::Menu(vec![
+                DirEntity {
+                    item_type: ItemType::Dir,
+                    name: GopherStr::from_latin1(b"hello, world"),
+                    selector: GopherStr::from_latin1(b"hello"),
+                    host: GopherStr::from_latin1(b"0.0.0.0"),
+                    port: 12345,
+                },
+                DirEntity {
+                    item_type: ItemType::Dir,
+                    name: GopherStr::from_latin1(b"Goodbye, world"),
+                    selector: GopherStr::from_latin1(b"bye"),
+                    host: GopherStr::from_latin1(b"0.0.0.0"),
+                    port: 12345,
+                },
+            ]),
+            b"hello" => GopherResponse::TextFile(
+                GopherStr::from_latin1(b"Hello, world.\r\nWelcome to Gopher.").into_buf()),
+            b"bye" => GopherResponse::TextFile(GopherStr::from_latin1(b"Goodbye").into_buf()),
+            _ => GopherResponse::error(GopherStr::from_latin1(b"File not found")),
+        };
+
         future::ok(response).boxed()
     }
 }

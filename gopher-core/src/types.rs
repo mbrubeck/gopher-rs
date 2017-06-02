@@ -2,7 +2,7 @@ use self::ItemType::*;
 use std::io;
 use std::io::Write;
 use str::GopherStr;
-use tokio_core::io::EasyBuf;
+use bytes::Bytes;
 
 pub enum Void {}
 
@@ -17,12 +17,12 @@ pub struct GopherRequest {
 
 impl GopherRequest {
     /// Read a Gopher request from a buffer containing a line *without* the trailing CRLF.
-    pub fn decode(mut line: EasyBuf) -> Self {
+    pub fn decode(mut line: Bytes) -> Self {
         // Split on TAB if present.
-        let query = match line.as_slice().iter().position(|b| *b == b'\t') {
+        let query = match line.iter().position(|b| *b == b'\t') {
             Some(i) => {
                 let mut query = line.split_off(i);
-                query.drain_to(1); // Consume the TAB.
+                query.split_to(1); // Consume the TAB.
                 Some(GopherStr::new(query))
             }
             None => None
@@ -42,10 +42,10 @@ pub enum GopherResponse {
     Menu(Vec<DirEntity>),
 
     /// A text document.
-    TextFile(EasyBuf),
+    TextFile(Bytes),
 
     /// A binary file download.
-    BinaryFile(EasyBuf),
+    BinaryFile(Bytes),
 
     /// A single menu item enclosed in a Gopher+ protocol response.
     ///
@@ -68,21 +68,21 @@ impl GopherResponse {
     }
 
     /// Encode the response into bytes for sending over the wire.
-    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()>
+    pub fn encode<W>(&self, mut buf: W) -> io::Result<()>
         where W: Write
     {
         match *self {
             GopherResponse::BinaryFile(ref file) => {
-                buf.write_all(file.as_slice())?;
+                buf.write_all(&file)?;
             }
             GopherResponse::TextFile(ref file) => {
                 // TODO: Escape lines beginning with periods by adding an extra period.
-                buf.write_all(file.as_slice())?;
+                buf.write_all(&file)?;
                 buf.write_all(b"\r\n.\r\n")?;
             }
             GopherResponse::Menu(ref entities) => {
                 for entity in entities {
-                    entity.encode(buf)?;
+                    entity.encode(&mut buf)?;
                 }
                 buf.write_all(b".\r\n")?;
             }
@@ -116,7 +116,7 @@ pub struct DirEntity {
 }
 
 impl DirEntity {
-    pub fn encode<W>(&self, mut buf: &mut W) -> io::Result<()>
+    pub fn encode<W>(&self, mut buf: W) -> io::Result<()>
         where W: Write
     {
         buf.write_all(&[self.item_type.encode()])?;

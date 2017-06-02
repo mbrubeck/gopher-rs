@@ -1,6 +1,6 @@
+extern crate bytes;
 extern crate futures;
 extern crate gopher_core;
-extern crate tokio_core;
 extern crate tokio_proto;
 extern crate tokio_service;
 
@@ -9,7 +9,7 @@ use gopher_core::{DirEntity, ItemType};
 use gopher_core::{GopherRequest, GopherResponse, GopherStr, Void};
 use gopher_core::proto::GopherServer;
 use std::io;
-use tokio_core::io::EasyBuf;
+use bytes::Bytes;
 use tokio_proto::TcpServer;
 use tokio_proto::streaming::{Body, Message};
 use tokio_service::Service;
@@ -18,7 +18,7 @@ pub struct HelloGopherServer;
 
 impl Service for HelloGopherServer {
     type Request = Message<GopherRequest, Body<Void, io::Error>>;
-    type Response = Message<GopherResponse, Body<EasyBuf, io::Error>>;
+    type Response = Message<GopherResponse, Body<Bytes, io::Error>>;
     type Error = io::Error;
     type Future = BoxFuture<Self::Response, Self::Error>;
 

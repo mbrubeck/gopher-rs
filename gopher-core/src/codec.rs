@@ -1,38 +1,44 @@
+use bytes::{Bytes, BytesMut, BufMut};
 use std::io;
-use tokio_core::io::{Codec, EasyBuf};
+use tokio_io::codec::{Decoder, Encoder};
 use tokio_proto::streaming::pipeline::Frame;
 use types::{GopherRequest, GopherResponse, Void};
 
-/// A codec for building a Gopher server using tokio-core.
+/// A codec for building a Gopher server.
 pub struct ServerCodec;
 
-impl Codec for ServerCodec {
-    type In = Frame<GopherRequest, Void, io::Error>;
-    type Out = Frame<GopherResponse, EasyBuf, io::Error>;
+impl Decoder for ServerCodec {
+    type Item = Frame<GopherRequest, Void, io::Error>;
+    type Error = io::Error;
 
-    fn decode(&mut self, buf: &mut EasyBuf) -> io::Result<Option<Self::In>> {
+    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Self::Item>> {
         // Read a CR+LF delimited line.
-        let line = match buf.as_slice().windows(2).position(|w| w == b"\r\n") {
-            Some(i) => buf.drain_to(i),
+        let line = match buf.windows(2).position(|w| w == b"\r\n") {
+            Some(i) => buf.split_to(i),
             None => return Ok(None)
         };
         // Discard the CR+LF.
-        buf.drain_to(2);
+        buf.split_to(2);
 
         Ok(Some(Frame::Message {
-            message: GopherRequest::decode(line),
+            message: GopherRequest::decode(line.freeze()),
             body: false,
         }))
     }
+}
 
-    fn encode(&mut self, frame: Self::Out, buf: &mut Vec<u8>) -> io::Result<()> {
+impl Encoder for ServerCodec {
+    type Item = Frame<GopherResponse, Bytes, io::Error>;
+    type Error = io::Error;
+
+    fn encode(&mut self, frame: Self::Item, buf: &mut BytesMut) -> io::Result<()> {
         match frame {
             Frame::Message { message, .. } => {
-                message.encode(buf)
+                message.encode(buf.writer())
             }
             Frame::Body { chunk } => {
                 if let Some(chunk) = chunk {
-                    buf.extend(chunk.as_slice());
+                    buf.extend(&chunk);
                 }
                 Ok(())
             }

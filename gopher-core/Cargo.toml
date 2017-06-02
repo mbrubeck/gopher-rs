@@ -1,6 +1,6 @@
 [package]
 name = "gopher-core"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Matt Brubeck <mbrubeck@limpet.net>"]
 license = "MIT / Apache-2.0"
 description = "A library implementing the Internet Gopher protocol"
@@ -10,9 +10,11 @@ keywords = ["gopher", "client", "server", "tokio", "protocol"]
 categories = ["network-programming"]
 
 [dependencies]
-futures = "0.1"
-tokio-core = "0.1"
-tokio-proto = "0.1"
+bytes = "0.4.4"
+futures = "0.1.14"
+tokio-core = "0.1.7"
+tokio-io = "0.1.2"
+tokio-proto = "0.1.1"
 
 [dev-dependencies]
-tokio-service = "0.1"
+tokio-service = "0.1.0"

@@ -1,18 +1,20 @@
+use bytes::Bytes;
 use codec::ServerCodec;
 use futures::{stream, Poll, Stream, Sink, StartSend};
 use std::io;
-use tokio_core::io::{EasyBuf, Io, Framed};
+use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::codec::Framed;
 use tokio_proto::streaming::pipeline::{ServerProto, Transport};
 use types::{GopherRequest, GopherResponse, Void};
 
 pub struct GopherServer;
 
-impl<T: Io + 'static> ServerProto<T> for GopherServer {
+impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for GopherServer {
     type Request = GopherRequest;
     type RequestBody = Void;
 
     type Response = GopherResponse;
-    type ResponseBody = EasyBuf;
+    type ResponseBody = Bytes;
 
     type Error = io::Error;
 

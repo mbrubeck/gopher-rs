@@ -4,8 +4,6 @@ use std::io::Write;
 use str::GopherStr;
 use bytes::Bytes;
 
-pub enum Void {}
-
 /// A client-to-server message.
 #[derive(Clone, Debug)]
 pub struct GopherRequest {

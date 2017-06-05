@@ -1,33 +1,29 @@
 extern crate bytes;
 extern crate futures;
 extern crate gopher_core;
+extern crate tokio_core;
+extern crate tokio_io;
 extern crate tokio_proto;
 extern crate tokio_service;
 
-use futures::{future, Future, BoxFuture};
-use gopher_core::{DirEntity, ItemType};
-use gopher_core::{GopherRequest, GopherResponse, GopherStr, Void};
-use gopher_core::proto::GopherServer;
+use futures::{future, Future, BoxFuture, Sink, Stream};
+use gopher_core::codec::ServerCodec;
+use gopher_core::{DirEntity, ItemType, GopherRequest, GopherResponse, GopherStr};
 use std::io;
-use bytes::Bytes;
-use tokio_proto::TcpServer;
-use tokio_proto::streaming::{Body, Message};
-use tokio_service::Service;
+use tokio_io::AsyncRead;
+use tokio_core::reactor::Core;
+use tokio_core::net::TcpListener;
+use tokio_service::{NewService, Service};
 
 pub struct HelloGopherServer;
 
 impl Service for HelloGopherServer {
-    type Request = Message<GopherRequest, Body<Void, io::Error>>;
-    type Response = Message<GopherResponse, Body<Bytes, io::Error>>;
+    type Request = GopherRequest;
+    type Response = GopherResponse;
     type Error = io::Error;
     type Future = BoxFuture<Self::Response, Self::Error>;
 
-    fn call(&self, message: Self::Request) -> Self::Future {
-        let request = match message {
-            Message::WithoutBody(request) => request,
-            _ => unreachable!(),
-        };
-
+    fn call(&self, request: Self::Request) -> Self::Future {
         println!("got request {:?}", request);
 
         let response = match &request.selector[..] {
@@ -63,11 +59,36 @@ impl Service for HelloGopherServer {
             _ => GopherResponse::error(GopherStr::from_latin1(b"File not found")),
         };
 
-        future::ok(Message::WithoutBody(response)).boxed()
+        future::ok(response).boxed()
     }
 }
 
+fn serve<S>(s: S) -> io::Result<()>
+    where S: NewService<Request = GopherRequest,
+                        Response = GopherResponse,
+                        Error = io::Error> + 'static
+{
+    let mut core = Core::new()?;
+    let handle = core.handle();
+
+    let address = "0.0.0.0:12345".parse().unwrap();
+    let listener = TcpListener::bind(&address, &handle)?;
+
+    let connections = listener.incoming();
+    let server = connections.for_each(move |(socket, _peer_addr)| {
+        let (writer, reader) = socket.framed(ServerCodec).split();
+        let service = s.new_service()?;
+
+        let response = reader.take(1).and_then(move |request| service.call(request));
+        let server = writer.send_all(response).then(|_| Ok(()));
+        handle.spawn(server);
+
+        Ok(())
+    });
+
+    core.run(server)
+}
+
 fn main() {
-    TcpServer::new(GopherServer, "0.0.0.0:12345".parse().unwrap())
-        .serve(|| Ok(HelloGopherServer));
+    serve(|| Ok(HelloGopherServer)).unwrap();
 }

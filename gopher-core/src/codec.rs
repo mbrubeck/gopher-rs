@@ -1,14 +1,13 @@
-use bytes::{Bytes, BytesMut, BufMut};
+use bytes::{BytesMut, BufMut};
 use std::io;
 use tokio_io::codec::{Decoder, Encoder};
-use tokio_proto::streaming::pipeline::Frame;
-use types::{GopherRequest, GopherResponse, Void};
+use types::{GopherRequest, GopherResponse};
 
 /// A codec for building a Gopher server.
 pub struct ServerCodec;
 
 impl Decoder for ServerCodec {
-    type Item = Frame<GopherRequest, Void, io::Error>;
+    type Item = GopherRequest;
     type Error = io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Self::Item>> {
@@ -20,31 +19,15 @@ impl Decoder for ServerCodec {
         // Discard the CR+LF.
         buf.split_to(2);
 
-        Ok(Some(Frame::Message {
-            message: GopherRequest::decode(line.freeze()),
-            body: false,
-        }))
+        Ok(Some(GopherRequest::decode(line.freeze())))
     }
 }
 
 impl Encoder for ServerCodec {
-    type Item = Frame<GopherResponse, Bytes, io::Error>;
+    type Item = GopherResponse;
     type Error = io::Error;
 
-    fn encode(&mut self, frame: Self::Item, buf: &mut BytesMut) -> io::Result<()> {
-        match frame {
-            Frame::Message { message, .. } => {
-                message.encode(buf.writer())
-            }
-            Frame::Body { chunk } => {
-                if let Some(chunk) = chunk {
-                    buf.extend(&chunk);
-                }
-                Ok(())
-            }
-            Frame::Error { error } => {
-                Err(error)
-            }
-        }
+    fn encode(&mut self, message: Self::Item, buf: &mut BytesMut) -> io::Result<()> {
+        message.encode(buf.writer())
     }
 }

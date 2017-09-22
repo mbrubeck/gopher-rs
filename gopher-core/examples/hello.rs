@@ -1,12 +1,10 @@
-extern crate bytes;
 extern crate futures;
 extern crate gopher_core;
 extern crate tokio_core;
 extern crate tokio_io;
-extern crate tokio_proto;
 extern crate tokio_service;
 
-use futures::{future, Future, BoxFuture, Sink, Stream};
+use futures::{future, Future, Sink, Stream};
 use gopher_core::codec::ServerCodec;
 use gopher_core::{DirEntity, ItemType, GopherRequest, GopherResponse, GopherStr};
 use std::io;
@@ -21,7 +19,7 @@ impl Service for HelloGopherServer {
     type Request = GopherRequest;
     type Response = GopherResponse;
     type Error = io::Error;
-    type Future = BoxFuture<Self::Response, Self::Error>;
+    type Future = future::FutureResult<Self::Response, Self::Error>;
 
     fn call(&self, request: Self::Request) -> Self::Future {
         println!("got request {:?}", request);
@@ -59,7 +57,7 @@ impl Service for HelloGopherServer {
             _ => GopherResponse::error(GopherStr::from_latin1(b"File not found")),
         };
 
-        future::ok(response).boxed()
+        future::ok(response)
     }
 }
 

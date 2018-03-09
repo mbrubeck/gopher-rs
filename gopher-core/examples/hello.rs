@@ -1,6 +1,6 @@
 extern crate futures;
 extern crate gopher_core;
-extern crate tokio_core;
+extern crate tokio;
 extern crate tokio_io;
 extern crate tokio_service;
 
@@ -8,10 +8,8 @@ use futures::{future, Future, Sink, Stream};
 use gopher_core::codec::ServerCodec;
 use gopher_core::{DirEntity, ItemType, GopherRequest, GopherResponse, GopherStr};
 use std::io;
-use tokio_io::AsyncRead;
-use tokio_core::reactor::Core;
-use tokio_core::net::TcpListener;
-use tokio_service::{NewService, Service};
+use tokio::{net::TcpListener, io::AsyncRead};
+use tokio_service::Service;
 
 pub struct HelloGopherServer;
 
@@ -61,32 +59,24 @@ impl Service for HelloGopherServer {
     }
 }
 
-fn serve<S>(s: S) -> io::Result<()>
-    where S: NewService<Request = GopherRequest,
-                        Response = GopherResponse,
-                        Error = io::Error> + 'static
-{
-    let mut core = Core::new()?;
-    let handle = core.handle();
-
+fn serve() -> io::Result<()> {
     let address = "0.0.0.0:12345".parse().unwrap();
-    let listener = TcpListener::bind(&address, &handle)?;
+    let listener = TcpListener::bind(&address)?;
 
-    let connections = listener.incoming();
-    let server = connections.for_each(move |(socket, _peer_addr)| {
-        let (writer, reader) = socket.framed(ServerCodec).split();
-        let service = s.new_service()?;
+    let server = listener.incoming()
+        .map_err(|e| eprintln!("{:?}", e))
+        .for_each(move |socket| {
+            let (writer, reader) = socket.framed(ServerCodec).split();
 
-        let response = reader.take(1).and_then(move |request| service.call(request));
-        let server = writer.send_all(response).then(|_| Ok(()));
-        handle.spawn(server);
+            let response = reader.take(1).and_then(move |request| HelloGopherServer.call(request));
+            let server = writer.send_all(response).then(|_| Ok(()));
+            tokio::spawn(server);
 
-        Ok(())
-    });
+            Ok(())
+        });
 
-    core.run(server)
+    tokio::run(server);
+    Ok(())
 }
 
-fn main() {
-    serve(|| Ok(HelloGopherServer)).unwrap();
-}
+fn main() { serve().unwrap(); }
